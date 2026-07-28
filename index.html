@@ -80,21 +80,130 @@ onmousemove = e => {
   lastY = e.clientY;
 };
 
-// Boss spawn
+// BOSSES: GOD + DRAGON + ELITE + REGULAR
+
+function godShot(boss) {
+  const a = Math.atan2(p.y - boss.y, p.x - boss.x);
+  bShots.push({
+    x: boss.x,
+    y: boss.y,
+    r: 50,
+    sp: 3,
+    dx: Math.cos(a),
+    dy: Math.sin(a),
+    col: "yellow",
+    dmg: 8
+  });
+}
+
+function dragonShot(boss) {
+  const base = Math.atan2(p.y - boss.y, p.x - boss.x);
+  const spread = 0.4;
+  for (let i = -1; i <= 1; i++) {
+    const a = base + spread * i;
+    bShots.push({
+      x: boss.x,
+      y: boss.y,
+      r: 65,
+      sp: 2.5,
+      dx: Math.cos(a),
+      dy: Math.sin(a),
+      col: "orange",
+      dmg: 10
+    });
+  }
+}
+
+function bossShoot(boss) {
+  if (boss.type === "god") {
+    godShot(boss);
+    boss.cd = 70;
+  } else if (boss.type === "dragon") {
+    dragonShot(boss);
+    boss.cd = 90;
+  } else {
+    const a = Math.atan2(p.y - boss.y, p.x - boss.x);
+    bShots.push({
+      x: boss.x,
+      y: boss.y,
+      r: 8,
+      sp: 5,
+      dx: Math.cos(a),
+      dy: Math.sin(a),
+      col: boss.elite ? "magenta" : "orange",
+      dmg: boss.elite ? 4 : 2
+    });
+    boss.cd = boss.elite ? 40 : 60;
+  }
+}
+
+// Boss spawn with probabilities:
+// regular 80%, elite 15%, god 4%, dragon 1%
 function spawnBoss() {
-  const eliteChance = 0.2; // 20% elite, 80% regular
-  const elite = Math.random() < eliteChance;
+  const roll = Math.random();
+
+  if (roll < 0.80) {
+    // regular
+    boss = {
+      x: Math.random()*c.width,
+      y: Math.random()*c.height,
+      r: 50,
+      hp: 15,
+      s: 2,
+      col: "red",
+      elite: false,
+      cd: 0,
+      type: "normal"
+    };
+    return;
+  }
+
+  if (roll < 0.95) {
+    // elite (purple, stronger)
+    boss = {
+      x: Math.random()*c.width,
+      y: Math.random()*c.height,
+      r: 70,
+      hp: 40,
+      s: 3,
+      col: "purple",
+      elite: true,
+      cd: 0,
+      type: "elite"
+    };
+    return;
+  }
+
+  if (roll < 0.99) {
+    // god
+    boss = {
+      x: Math.random()*c.width,
+      y: Math.random()*c.height,
+      r: 120,
+      hp: 120,
+      s: 1.2,
+      col: "gold",
+      elite: true,
+      cd: 0,
+      type: "god"
+    };
+    return;
+  }
+
+  // dragon
   boss = {
     x: Math.random()*c.width,
     y: Math.random()*c.height,
-    r: elite ? 70 : 50,
-    hp: elite ? 40 : 15,
-    s: elite ? 3 : 2,
-    col: elite ? "purple" : "red",
-    elite,
-    cd: 0
+    r: 175,
+    hp: 180,
+    s: 1,
+    col: "darkgreen",
+    elite: true,
+    cd: 0,
+    type: "dragon"
   };
 }
+
 setInterval(() => {
   if (!boss && !dead && !choose) spawnBoss();
 }, 6000);
@@ -116,8 +225,8 @@ function offerCards() {
   choose = true;
   cards = [];
   while (cards.length < 3) {
-    const c = upgrades[Math.floor(Math.random()*upgrades.length)];
-    if (!cards.includes(c)) cards.push(c);
+    const cUp = upgrades[Math.floor(Math.random()*upgrades.length)];
+    if (!cards.includes(cUp)) cards.push(cUp);
   }
 }
 
@@ -287,11 +396,10 @@ function update() {
     p.mana = Math.min(p.maxMana, p.mana + p.mRegen);
   }
 
-  // Boss logic (null-safe)
+  // Boss logic
   if (boss && !dead && !choose) {
     let angle = Math.atan2(p.y - boss.y, p.x - boss.x);
 
-    // summons block boss
     for (let i = 0; i < sums.length; i++) {
       const s = sums[i];
       const d = Math.hypot(boss.x - s.x, boss.y - s.y);
@@ -309,20 +417,7 @@ function update() {
     boss.y += Math.sin(angle) * boss.s;
 
     boss.cd--;
-    if (boss.cd <= 0) {
-      const ba = Math.atan2(p.y - boss.y, p.x - boss.x);
-      bShots.push({
-        x: boss.x,
-        y: boss.y,
-        r: 8,
-        sp: 5,
-        dx: Math.cos(ba),
-        dy: Math.sin(ba),
-        col: boss.elite ? "magenta" : "orange",
-        dmg: boss.elite ? 4 : 2
-      });
-      boss.cd = boss.elite ? 40 : 60;
-    }
+    if (boss.cd <= 0) bossShoot(boss);
   }
 
   // Shots
@@ -351,7 +446,7 @@ function update() {
           p.xp += elite ? 15 : 10;
           if (p.xp >= p.xpNext) levelUp();
           if (elite) offerCards();
-          return; // stop update this frame, avoid null crash
+          return;
         }
       }
     }
@@ -406,7 +501,7 @@ function update() {
 
 // Draw
 function draw() {
-  x.setTransform(1,0,0,1,0,0); // tilt fix
+  x.setTransform(1,0,0,1,0,0);
   x.clearRect(0,0,c.width,c.height);
 
   // Player
@@ -453,11 +548,16 @@ function draw() {
 
     x.fillStyle="white";
     x.fillRect(boss.x-40,boss.y-boss.r-20,80,10);
+
+    let maxHp = boss.type === "god" ? 120 :
+                boss.type === "dragon" ? 180 :
+                boss.elite ? 40 : 15;
+
     x.fillStyle="lime";
     x.fillRect(
       boss.x-40,
       boss.y-boss.r-20,
-      (boss.hp/(boss.elite?40:15))*80,
+      (boss.hp/maxHp)*80,
       10
     );
 
