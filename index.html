@@ -142,6 +142,10 @@ function loadGame() {
     Object.assign(p, data.p);
     killsSinceGod = data.killsSinceGod || 0;
     killsSinceDragon = data.killsSinceDragon || 0;
+
+    // clamp player inside screen after load
+    p.x = Math.min(Math.max(p.x, p.r), c.width - p.r);
+    p.y = Math.min(Math.max(p.y, p.r), c.height - p.r);
   } catch(e) {}
 }
 
@@ -161,6 +165,20 @@ function dragonShot(boss) {
     const a = base + spread * i;
     bShots.push({ x: boss.x, y: boss.y, r: 65, sp: 2.5, dx: Math.cos(a), dy: Math.sin(a), col: "orange", dmg: 10 });
   }
+}
+
+function bossShoot(boss) {
+  if (boss.type === "god") { godShot(boss); boss.cd = 70; return; }
+  if (boss.type === "dragon") { dragonShot(boss); boss.cd = 90; return; }
+
+  const a = Math.atan2(p.y - boss.y, p.x - boss.x);
+  bShots.push({
+    x: boss.x, y: boss.y, r: 8, sp: 5,
+    dx: Math.cos(a), dy: Math.sin(a),
+    col: boss.elite ? "magenta" : "orange",
+    dmg: boss.elite ? 4 : 2
+  });
+  boss.cd = boss.elite ? 40 : 60;
 }
 
 function spawnBoss() {
@@ -487,8 +505,6 @@ function update() {
     if (s.x - s.r < 0) s.x = s.r;
     if (s.x + s.r > c.width) s.x = c.width - s.r;
     if (s.y - s.r < 0) s.y = s.r;
-    if (s.y + s.r > c.height) s
-        if (s.y - s.r < 0) s.y = s.r;
     if (s.y + s.r > c.height) s.y = c.height - s.r;
   });
 
@@ -666,12 +682,10 @@ function draw() {
   x.fillStyle="cyan";
   x.fillRect(p.x-20,p.y+p.r+10,(p.mana/p.maxMana)*40,6);
 
-  // XP
+  // XP + PITY
   x.fillStyle="white";
   x.font="16px Arial";
   x.fillText(`Lvl ${p.lvl}  XP ${p.xp}/${p.xpNext}`,10,20);
-
-  // PITY DISPLAY
   x.fillText(`God Pity: ${killsSinceGod}/20`, 10, 40);
   x.fillText(`Dragon Pity: ${killsSinceDragon}/100`, 10, 60);
 
