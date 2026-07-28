@@ -114,7 +114,7 @@ const dragonUpgrades = [
   { name:"Dragon Heart: +500% Mana Regen", apply(){ p.mRegen*=5; }}
 ];
 
-// UPGRADE MENU FUNCTIONS (fixes elite crash)
+// UPGRADE MENUS (required to prevent elite crash)
 function offerCards() {
   choose = true;
   cards = [];
@@ -140,6 +140,74 @@ function offerDragonCards() {
     const cUp = dragonUpgrades[Math.floor(Math.random()*dragonUpgrades.length)];
     if (!cards.includes(cUp)) cards.push(cUp);
   }
+}
+
+// SUMMON DRAW
+function drawSummon(s) {
+  x.fillStyle = s.col;
+  x.beginPath();
+  x.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+  x.fill();
+}
+
+// SUMMON FUSION
+function fuseSummons() {
+  for (let i = 0; i < sums.length; i++) {
+    for (let j = i + 1; j < sums.length; j++) {
+      const a = sums[i], b = sums[j];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (d < a.r + b.r) {
+        a.r += b.r * 0.5;
+        a.hp += b.hp;
+        sums.splice(j, 1);
+        j--;
+      }
+    }
+  }
+}
+
+// LEVEL UP
+function levelUp() {
+  p.lvl++;
+  p.xp = 0;
+  p.xpNext = Math.floor(p.xpNext * 1.5);
+  p.maxHp += 10;
+  p.hp = p.maxHp;
+  p.maxMana += 10;
+  p.mana = p.maxMana;
+  p.dmg += 0.5;
+  p.regen += 0.02;
+  saveGame();
+}
+
+// BOSS SHOOTING
+function bossShoot(boss) {
+  if (boss.type === "god") {
+    const a = Math.atan2(p.y - boss.y, p.x - boss.x);
+    bShots.push({ x: boss.x, y: boss.y, r: 50, sp: 3, dx: Math.cos(a), dy: Math.sin(a), col: "yellow", dmg: 8 });
+    boss.cd = 70;
+    return;
+  }
+
+  if (boss.type === "dragon") {
+    const base = Math.atan2(p.y - boss.y, p.x - boss.x);
+    const spread = 0.4;
+    for (let i = -1; i <= 1; i++) {
+      const a = base + spread * i;
+      bShots.push({ x: boss.x, y: boss.y, r: 65, sp: 2.5, dx: Math.cos(a), dy: Math.sin(a), col: "orange", dmg: 10 });
+    }
+    boss.cd = 90;
+    return;
+  }
+
+  const a = Math.atan2(p.y - boss.y, p.x - boss.x);
+  bShots.push({
+    x: boss.x, y: boss.y, r: 8, sp: 5,
+    dx: Math.cos(a), dy: Math.sin(a),
+    col: boss.elite ? "magenta" : "orange",
+    dmg: boss.elite ? 4 : 2
+  });
+  boss.cd = boss.elite ? 40 : 60;
 }
 
 // MOUSE
@@ -174,7 +242,7 @@ function loadGame() {
 loadGame();
 setInterval(saveGame, 10000);
 
-// BOSS SYSTEM — NEW SPAWN CHANCES
+// BOSS SPAWN CHANCES
 function spawnBoss() {
   const roll = Math.random();
 
