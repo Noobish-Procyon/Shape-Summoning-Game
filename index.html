@@ -198,105 +198,6 @@ function spawnBoss() {
 setInterval(() => {
   if (!boss && !dead && !choose) spawnBoss();
 }, 6000);
-// GOD + DRAGON PROJECTILES
-function godShot(boss) {
-  const a = Math.atan2(p.y - boss.y, p.x - boss.x);
-  bShots.push({ x: boss.x, y: boss.y, r: 50, sp: 3, dx: Math.cos(a), dy: Math.sin(a), col: "yellow", dmg: 8 });
-}
-
-function dragonShot(boss) {
-  const base = Math.atan2(p.y - boss.y, p.x - boss.x);
-  const spread = 0.4;
-  for (let i = -1; i <= 1; i++) {
-    const a = base + spread * i;
-    bShots.push({ x: boss.x, y: boss.y, r: 65, sp: 2.5, dx: Math.cos(a), dy: Math.sin(a), col: "orange", dmg: 10 });
-  }
-}
-
-// BOSS SHOOTING
-function bossShoot(boss) {
-  if (boss.type === "god") return godShot(boss), boss.cd = 70;
-  if (boss.type === "dragon") return dragonShot(boss), boss.cd = 90;
-
-  const a = Math.atan2(p.y - boss.y, p.x - boss.x);
-  bShots.push({
-    x: boss.x, y: boss.y, r: 8, sp: 5,
-    dx: Math.cos(a), dy: Math.sin(a),
-    col: boss.elite ? "magenta" : "orange",
-    dmg: boss.elite ? 4 : 2
-  });
-  boss.cd = boss.elite ? 40 : 60;
-}
-
-// BOSS SPAWN (80/15/4/1)
-function spawnBoss() {
-  const roll = Math.random();
-
-  if (roll < 0.80) {
-    boss = {
-      x: Math.random()*c.width,
-      y: Math.random()*c.height,
-      r: 50,
-      hp: 15,
-      maxHp: 15,
-      s: 2,
-      col: "red",
-      elite: false,
-      cd: 0,
-      type: "normal"
-    };
-    return;
-  }
-
-  if (roll < 0.95) {
-    boss = {
-      x: Math.random()*c.width,
-      y: Math.random()*c.height,
-      r: 70,
-      hp: 40,
-      maxHp: 40,
-      s: 3,
-      col: "purple",
-      elite: true,
-      cd: 0,
-      type: "elite"
-    };
-    return;
-  }
-
-  if (roll < 0.99) {
-    boss = {
-      x: Math.random()*c.width,
-      y: Math.random()*c.height,
-      r: 120,
-      hp: 120,
-      maxHp: 120,
-      s: 1.2,
-      col: "gold",
-      elite: false,
-      cd: 0,
-      type: "god"
-    };
-    return;
-  }
-
-  boss = {
-    x: Math.random()*c.width,
-    y: Math.random()*c.height,
-    r: 175,
-    hp: 180,
-    maxHp: 180,
-    s: 1,
-    col: "darkgreen",
-    elite: false,
-    cd: 0,
-    type: "dragon"
-  };
-}
-
-setInterval(() => {
-  if (!boss && !dead && !choose) spawnBoss();
-}, 6000);
 // Keys
 onkeydown = e => {
   keys[e.key] = true;
@@ -354,7 +255,6 @@ onclick = e => {
         return;
       }
     }
-    // safety: if no card hit, close menu
     if (cards.length === 0) choose = false;
     return;
   }
@@ -711,7 +611,6 @@ function draw() {
       x.fillText(card.name, xx+20, y+h/2);
     });
 
-    // safety: if somehow no cards, close menu
     if (cards.length === 0) choose = false;
   }
 
