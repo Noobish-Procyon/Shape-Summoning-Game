@@ -32,6 +32,7 @@ canvas {
 const c = document.getElementById("game");
 const x = c.getContext("2d");
 
+// Resize canvas FIRST
 function resize() {
   c.width = innerWidth;
   c.height = innerHeight;
@@ -39,10 +40,10 @@ function resize() {
 resize();
 onresize = resize;
 
-// PLAYER
+// PLAYER (spawn AFTER canvas size is known)
 const p = {
-  x: innerWidth/2,
-  y: innerHeight/2,
+  x: c.width/2,
+  y: c.height/2,
   r: 20,
   s: 5,
   col: "white",
@@ -114,7 +115,7 @@ const dragonUpgrades = [
   { name:"Dragon Heart: +500% Mana Regen", apply(){ p.mRegen*=5; }}
 ];
 
-// UPGRADE MENUS
+// UPGRADE MENUS (prevents elite crash)
 function offerCards() {
   choose = true;
   cards = [];
@@ -223,13 +224,15 @@ function saveGame() {
 function loadGame() {
   const raw = localStorage.getItem(getSaveKey());
   if (!raw) return;
+
   try {
     const data = JSON.parse(raw);
     Object.assign(p, data.p);
 
-    // keep player inside screen
+    // clamp inside screen
     p.x = Math.min(Math.max(p.x, p.r), c.width - p.r);
     p.y = Math.min(Math.max(p.y, p.r), c.height - p.r);
+
   } catch(e) {}
 }
 
@@ -291,8 +294,13 @@ onclick = e => {
 
   // CLICK TO RESPAWN
   if (dead) {
-    p.x = c.width / 2;
-    p.y = c.height / 2;
+    p.x = c.width/2;
+    p.y = c.height/2;
+
+    // clamp inside screen
+    p.x = Math.min(Math.max(p.x, p.r), c.width - p.r);
+    p.y = Math.min(Math.max(p.y, p.r), c.height - p.r);
+
     p.hp = p.maxHp;
     p.mana = p.maxMana;
     dead = false;
