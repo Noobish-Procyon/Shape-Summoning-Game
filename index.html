@@ -19,7 +19,6 @@ function resize() {
 }
 resize();
 onresize = resize;
-
 // Player
 const p = {
   x: c.width/2,
@@ -58,6 +57,7 @@ let lastY = p.y;
 let dead = false;
 let choose = false;
 let cards = [];
+let bossDropText = "";
 
 // Upgrades
 const upgrades = [
@@ -130,7 +130,7 @@ function bossShoot(boss) {
   boss.cd = boss.elite ? 40 : 60;
 }
 
-// BOSS SPAWN (80% regular, 15% elite, 4% god, 1% dragon)
+// BOSS SPAWN (80/15/4/1)
 function spawnBoss() {
   const roll = Math.random();
 
@@ -199,8 +199,7 @@ onclick = e => {
   p.mana -= p.sCost;
 
   sums.push({
-    x: e.clientX,
-    y: e.clientY,
+    x: e.clientX, y: e.clientY,
     r: 20,
     col: `hsl(${Math.random()*360},80%,60%)`,
     sh: shape,
@@ -255,7 +254,6 @@ function respawn() {
   bShots = [];
   sums = [];
 }
-
 // Draw summon / shot
 function drawSummon(s) {
   x.fillStyle = s.col;
@@ -352,8 +350,17 @@ function update() {
 
         if (boss.hp <= 0) {
 
-          if (boss.type === "god") rewardGod();
-          if (boss.type === "dragon") rewardDragon();
+          if (boss.type === "god") {
+            rewardGod();
+            bossDropText = "+10 DMG  +10 SPD  +100 Mana  +50 HP  +150% Mana Regen  +50% HP Regen";
+          }
+
+          if (boss.type === "dragon") {
+            rewardDragon();
+            bossDropText = "+15 DMG  +15 SPD  Infinite Mana  +3 Multishot";
+          }
+
+          setTimeout(() => bossDropText = "", 3000);
 
           const elite = boss.elite;
           boss = null;
@@ -414,7 +421,6 @@ function update() {
     }
   }
 }
-
 // Draw
 function draw() {
   x.setTransform(1,0,0,1,0,0);
@@ -470,13 +476,29 @@ function draw() {
                 boss.elite?40:15;
 
     x.fillStyle="lime";
-    x.fillRect(boss.x-40,boss.y-boss.r-20,(boss.hp/maxHp)*80,10);
+    // Boss labels
+    x.fillStyle = "yellow";
+    x.font = "20px Arial";
 
-    if (boss.elite) {
-      x.fillStyle="yellow";
-      x.font="14px Arial";
-      x.fillText("ELITE",boss.x,boss.y-boss.r-35);
+    if (boss.type === "god") {
+      x.fillText("GOD", boss.x - 20, boss.y - boss.r - 40);
     }
+    else if (boss.type === "dragon") {
+      x.fillText("DRAGON", boss.x - 35, boss.y - boss.r - 40);
+    }
+    else if (boss.elite) {
+      x.fillText("ELITE", boss.x - 25, boss.y - boss.r - 40);
+    }
+    else {
+      x.fillText("BOSS", boss.x - 20, boss.y - boss.r - 40);
+    }
+  }
+
+  // Boss drop text (shows for 3 seconds)
+  if (bossDropText) {
+    x.fillStyle = "white";
+    x.font = "28px Arial";
+    x.fillText(bossDropText, c.width/2 - 300, c.height - 80);
   }
 
   // Upgrade UI
@@ -489,8 +511,9 @@ function draw() {
 
     const w=250,h=150,g=50;
     const sx=c.width/2-(w*1.5+g);
-    const y=250
-        cards.forEach((card,i)=>{
+    const y=250;
+
+    cards.forEach((card,i)=>{
       const xx=sx+i*(w+g);
       x.fillStyle="#222";
       x.fillRect(xx,y,w,h);
