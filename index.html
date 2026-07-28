@@ -123,20 +123,7 @@ onmousemove = e => {
 const SAVE_KEY = "shapeSummonerSave";
 
 function saveGame() {
-  const data = {
-    p: {
-      x:p.x,y:p.y,
-      hp:p.hp,maxHp:p.maxHp,
-      mana:p.mana,maxMana:p.maxMana,
-      regen:p.regen,mRegen:p.mRegen,
-      lvl:p.lvl,xp:p.xp,xpNext:p.xpNext,
-      dmg:p.dmg,s:p.s,
-      sCost:p.sCost,shCost:p.shCost,
-      spdBoost:p.spdBoost,
-      multi:p.multi,multiCount:p.multiCount,
-      shootDelay:p.shootDelay
-    }
-  };
+  const data = { p };
   localStorage.setItem(SAVE_KEY, JSON.stringify(data));
 }
 
@@ -146,15 +133,10 @@ function loadGame() {
   try {
     const data = JSON.parse(raw);
     Object.assign(p, data.p);
-  } catch(e) {
-    console.warn("Save load failed", e);
-  }
+  } catch(e) {}
 }
 
-// Load on start
 loadGame();
-
-// Auto-save every 10s
 setInterval(saveGame, 10000);
 function godShot(boss) {
   const a = Math.atan2(p.y - boss.y, p.x - boss.x);
@@ -210,11 +192,8 @@ setInterval(() => {
 }, 6000);
 onkeydown = e => {
   keys[e.key] = true;
-
   if (e.key === "f" || e.key === "F") saveGame();
-
   if (choose) return;
-
   if (e.key==="1") shape=1;
   if (e.key==="2") shape=2;
   if (e.key==="3") shape=3;
@@ -368,6 +347,19 @@ function levelUp() {
   saveGame();
 }
 
+// FIX: God/Dragon crash — reward functions
+function rewardGod() {
+  p.dmg += 10;
+  p.maxHp += 50;
+  p.hp = p.maxHp;
+}
+
+function rewardDragon() {
+  p.dmg += 15;
+  p.multi = true;
+  p.multiCount += 3;
+}
+
 function update() {
   if (p.shootCooldown > 0) p.shootCooldown--;
 
@@ -459,10 +451,6 @@ function update() {
       const s = shots[i];
       const d = Math.hypot(s.x - boss.x, s.y - boss.y);
       if (d < s.r + boss.r) {
-        boss.hp -= s.dmg;
-        shots.splice(i, 1);
-
-        if (d < s.r + boss.r) {
         boss.hp -= s.dmg;
         shots.splice(i, 1);
 
