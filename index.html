@@ -368,7 +368,42 @@ onclick = e => {
   });
 
   fuseSummons();
-};
+function shoot() {
+  if (dead || choose || paused) return;
+  if (p.shootCooldown > 0) return;
+  if (p.mana < p.shCost) return;
+
+  p.shootCooldown = p.shootDelay;
+  p.mana -= p.shCost;
+
+  const speed = 8 + p.spdBoost;
+  const angle = Math.atan2(lastY - p.y, lastX - p.x);
+
+  function makeShot(a) {
+    shots.push({
+      x: p.x,
+      y: p.y,
+      r: 12,
+      sp: speed,
+      dx: Math.cos(a),
+      dy: Math.sin(a),
+      col: `hsl(${Math.random()*360},80%,60%)`,
+      dmg: p.dmg
+    });
+  }
+
+  if (p.multi) {
+    const n = p.multiCount;
+    const spread = 0.25;
+    for (let i = 0; i < n; i++) {
+      const off = spread * ((i / (n - 1)) - 0.5);
+      makeShot(angle + off);
+    }
+  } else {
+    makeShot(angle);
+  }
+}
+
 function update() {
   if (paused) return;
 
@@ -621,7 +656,13 @@ function draw() {
 
   // Summons + shots
   sums.forEach(drawSummon);
-  shots.forEach(drawSummon);
+
+  shots.forEach(s=>{
+    x.beginPath();
+    x.arc(s.x,s.y,s.r,0,Math.PI*2);
+    x.fillStyle=s.col;
+    x.fill();
+  });
 
   // Boss shots
   bShots.forEach(b=>{
