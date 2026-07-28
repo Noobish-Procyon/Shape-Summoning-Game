@@ -220,34 +220,25 @@ onkeydown = e => {
 
 onkeyup = e => keys[e.key] = false;
 
-function offerCards() {
-  choose = true;
-  cards = [];
-  while (cards.length < 3) {
-    const cUp = upgrades[Math.floor(Math.random()*upgrades.length)];
-    if (!cards.includes(cUp)) cards.push(cUp);
-  }
-}
-
-function offerGodCards() {
-  choose = true;
-  cards = [];
-  while (cards.length < 3) {
-    const cUp = godUpgrades[Math.floor(Math.random()*godUpgrades.length)];
-    if (!cards.includes(cUp)) cards.push(cUp);
-  }
-}
-
-function offerDragonCards() {
-  choose = true;
-  cards = [];
-  while (cards.length < 3) {
-    const cUp = dragonUpgrades[Math.floor(Math.random()*dragonUpgrades.length)];
-    if (!cards.includes(cUp)) cards.push(cUp);
-  }
-}
-
+// CLICK HANDLER (includes click‑to‑respawn)
 onclick = e => {
+
+  // CLICK TO RESPAWN
+  if (dead) {
+    p.x = c.width / 2;
+    p.y = c.height / 2;
+    p.hp = p.maxHp;
+    p.mana = p.maxMana;
+    dead = false;
+    boss = null;
+    shots = [];
+    bShots = [];
+    sums = [];
+    saveGame();
+    return;
+  }
+
+  // PAUSE MENU SLOT SELECT
   if (paused) {
     const w = 200, h = 80, g = 40;
     const sx = c.width/2 - (w*1.5 + g);
@@ -268,6 +259,7 @@ onclick = e => {
     return;
   }
 
+  // UPGRADE MENU
   if (choose) {
     const w=250,h=150,g=50;
     const sx = c.width/2 - (w*1.5 + g);
@@ -288,8 +280,7 @@ onclick = e => {
     return;
   }
 
-  if (dead) return;
-
+  // SUMMON SPAWN
   if (p.mana < p.sCost) return;
 
   p.mana -= p.sCost;
@@ -483,7 +474,6 @@ function update() {
         shots.splice(i, 1);
 
         if (boss.hp <= 0) {
-
           if (boss.type === "god") {
             rewardGod();
             boss = null;
@@ -671,6 +661,11 @@ function draw() {
   if (bossDropText) {
     x.fillStyle="white";
     x.font="28px Arial";
+x.fillText(bossDropText, c.width
+  // Boss drop text
+  if (bossDropText) {
+    x.fillStyle="white";
+    x.font="28px Arial";
     x.fillText(bossDropText, c.width/2 - 200, c.height - 80);
   }
 
@@ -713,7 +708,7 @@ function draw() {
     x.fillText("YOU DIED", c.width/2 - 150, c.height/2 - 40);
 
     x.font="30px Arial";
-    x.fillText("Refresh page to restart", c.width/2 - 180, c.height/2 + 20);
+    x.fillText("Click to Respawn", c.width/2 - 150, c.height/2 + 20);
   }
 }
 
