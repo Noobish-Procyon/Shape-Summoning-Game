@@ -81,7 +81,7 @@ let bossDropText = "";
 let paused = false;
 let currentSlot = 1;
 
-// UPGRADES
+// UPGRADE POOLS
 const upgrades = [
   { name:"Max HP + Heal", apply(){ p.maxHp+=20; p.hp=p.maxHp; }},
   { name:"Max Mana + Restore", apply(){ p.maxMana+=20; p.mana=p.maxMana; }},
@@ -113,6 +113,34 @@ const dragonUpgrades = [
   { name:"Dragon Skin: +150 HP", apply(){ p.maxHp+=150; p.hp=p.maxHp; }},
   { name:"Dragon Heart: +500% Mana Regen", apply(){ p.mRegen*=5; }}
 ];
+
+// UPGRADE MENU FUNCTIONS (fixes elite crash)
+function offerCards() {
+  choose = true;
+  cards = [];
+  while (cards.length < 3) {
+    const cUp = upgrades[Math.floor(Math.random()*upgrades.length)];
+    if (!cards.includes(cUp)) cards.push(cUp);
+  }
+}
+
+function offerGodCards() {
+  choose = true;
+  cards = [];
+  while (cards.length < 3) {
+    const cUp = godUpgrades[Math.floor(Math.random()*godUpgrades.length)];
+    if (!cards.includes(cUp)) cards.push(cUp);
+  }
+}
+
+function offerDragonCards() {
+  choose = true;
+  cards = [];
+  while (cards.length < 3) {
+    const cUp = dragonUpgrades[Math.floor(Math.random()*dragonUpgrades.length)];
+    if (!cards.includes(cUp)) cards.push(cUp);
+  }
+}
 
 // MOUSE
 onmousemove = e => {
