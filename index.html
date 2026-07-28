@@ -114,7 +114,7 @@ const dragonUpgrades = [
   { name:"Dragon Heart: +500% Mana Regen", apply(){ p.mRegen*=5; }}
 ];
 
-// UPGRADE MENUS (required to prevent elite crash)
+// UPGRADE MENUS
 function offerCards() {
   choose = true;
   cards = [];
@@ -210,12 +210,6 @@ function bossShoot(boss) {
   boss.cd = boss.elite ? 40 : 60;
 }
 
-// MOUSE
-onmousemove = e => {
-  lastX = e.clientX;
-  lastY = e.clientY;
-};
-
 // SAVE SYSTEM
 function getSaveKey() {
   return "shapeSummonerSave_slot" + currentSlot;
@@ -242,7 +236,7 @@ function loadGame() {
 loadGame();
 setInterval(saveGame, 10000);
 
-// BOSS SPAWN CHANCES
+// BOSS SPAWN CHANCES (70/20/8/2)
 function spawnBoss() {
   const roll = Math.random();
 
