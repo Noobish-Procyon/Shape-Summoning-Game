@@ -115,7 +115,7 @@ const dragonUpgrades = [
   { name:"Dragon Heart: +500% Mana Regen", apply(){ p.mRegen*=5; }}
 ];
 
-// UPGRADE MENUS (prevents elite crash)
+// UPGRADE MENUS
 function offerCards() {
   choose = true;
   cards = [];
@@ -368,6 +368,7 @@ onclick = e => {
   });
 
   fuseSummons();
+};
 function shoot() {
   if (dead || choose || paused) return;
   if (p.shootCooldown > 0) return;
@@ -376,18 +377,18 @@ function shoot() {
   p.shootCooldown = p.shootDelay;
   p.mana -= p.shCost;
 
-  const speed = 8 + p.spdBoost;
+  const speed = 10 + p.spdBoost;
   const angle = Math.atan2(lastY - p.y, lastX - p.x);
 
   function makeShot(a) {
     shots.push({
       x: p.x,
       y: p.y,
-      r: 12,
+      r: 10,
       sp: speed,
       dx: Math.cos(a),
       dy: Math.sin(a),
-      col: `hsl(${Math.random()*360},80%,60%)`,
+      col: "white",
       dmg: p.dmg
     });
   }
@@ -463,10 +464,10 @@ function update() {
 
   // SHOT BORDER COLLISION
   shots = shots.filter(s =>
-    s.x > s.r &&
-    s.x < c.width - s.r &&
-    s.y > s.r &&
-    s.y < c.height - s.r
+    s.x > 0 &&
+    s.x < c.width &&
+    s.y > 0 &&
+    s.y < c.height
   );
 
   // Boss shots movement
@@ -475,17 +476,17 @@ function update() {
     b.y += b.dy * b.sp;
   });
 
-  // BOSS SHOT BORDER COLLISION
   bShots = bShots.filter(b =>
-    b.x > b.r &&
-    b.x < c.width - b.r &&
-    b.y > b.r &&
-    b.y < c.height - b.r
+    b.x > 0 &&
+    b.x < c.width &&
+    b.y > 0 &&
+    b.y < c.height
   );
 
   // Summon border collision
   sums.forEach(s => {
     if (s.x - s.r < 0) s.x = s.r;
+    if (s.x + s.r > c.width) s.x = c.width - s.r;
     if (s.x + s.r > c.width) s.x = c.width - s.r;
     if (s.y - s.r < 0) s.y = s.r;
     if (s.y + s.r > c.height) s.y = c.height - s.r;
@@ -594,7 +595,6 @@ function update() {
   }
 }
 
-// DRAW
 function draw() {
   x.setTransform(1,0,0,1,0,0);
   x.clearRect(0,0,c.width,c.height);
@@ -654,9 +654,10 @@ function draw() {
   x.font="16px Arial";
   x.fillText(`Lvl ${p.lvl}  XP ${p.xp}/${p.xpNext}`,10,20);
 
-  // Summons + shots
+  // Summons
   sums.forEach(drawSummon);
 
+  // Shots
   shots.forEach(s=>{
     x.beginPath();
     x.arc(s.x,s.y,s.r,0,Math.PI*2);
