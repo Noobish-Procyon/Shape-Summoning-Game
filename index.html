@@ -41,8 +41,8 @@ onresize = resize;
 
 // PLAYER
 const p = {
-  x: c.width/2,
-  y: c.height/2,
+  x: innerWidth/2,
+  y: innerHeight/2,
   r: 20,
   s: 5,
   col: "white",
@@ -80,10 +80,6 @@ let cards = [];
 let bossDropText = "";
 let paused = false;
 let currentSlot = 1;
-
-// PITY SYSTEM
-let killsSinceGod = 0;
-let killsSinceDragon = 0;
 
 // UPGRADES
 const upgrades = [
@@ -124,13 +120,13 @@ onmousemove = e => {
   lastY = e.clientY;
 };
 
-// SAVE SLOTS
+// SAVE SYSTEM
 function getSaveKey() {
   return "shapeSummonerSave_slot" + currentSlot;
 }
 
 function saveGame() {
-  const data = { p, killsSinceGod, killsSinceDragon };
+  const data = { p };
   localStorage.setItem(getSaveKey(), JSON.stringify(data));
 }
 
@@ -140,10 +136,8 @@ function loadGame() {
   try {
     const data = JSON.parse(raw);
     Object.assign(p, data.p);
-    killsSinceGod = data.killsSinceGod || 0;
-    killsSinceDragon = data.killsSinceDragon || 0;
 
-    // clamp player inside screen after load
+    // keep player inside screen
     p.x = Math.min(Math.max(p.x, p.r), c.width - p.r);
     p.y = Math.min(Math.max(p.y, p.r), c.height - p.r);
   } catch(e) {}
@@ -152,88 +146,26 @@ function loadGame() {
 loadGame();
 setInterval(saveGame, 10000);
 
-// BOSS SYSTEM
-function godShot(boss) {
-  const a = Math.atan2(p.y - boss.y, p.x - boss.x);
-  bShots.push({ x: boss.x, y: boss.y, r: 50, sp: 3, dx: Math.cos(a), dy: Math.sin(a), col: "yellow", dmg: 8 });
-}
-
-function dragonShot(boss) {
-  const base = Math.atan2(p.y - boss.y, p.x - boss.x);
-  const spread = 0.4;
-  for (let i = -1; i <= 1; i++) {
-    const a = base + spread * i;
-    bShots.push({ x: boss.x, y: boss.y, r: 65, sp: 2.5, dx: Math.cos(a), dy: Math.sin(a), col: "orange", dmg: 10 });
-  }
-}
-
-function bossShoot(boss) {
-  if (boss.type === "god") { godShot(boss); boss.cd = 70; return; }
-  if (boss.type === "dragon") { dragonShot(boss); boss.cd = 90; return; }
-
-  const a = Math.atan2(p.y - boss.y, p.x - boss.x);
-  bShots.push({
-    x: boss.x, y: boss.y, r: 8, sp: 5,
-    dx: Math.cos(a), dy: Math.sin(a),
-    col: boss.elite ? "magenta" : "orange",
-    dmg: boss.elite ? 4 : 2
-  });
-  boss.cd = boss.elite ? 40 : 60;
-}
-
+// BOSS SYSTEM — NEW SPAWN CHANCES
 function spawnBoss() {
-
-  // DRAGON PITY
-  if (killsSinceDragon >= 100) {
-    killsSinceDragon = 0;
-    killsSinceGod = 0;
-    boss = {
-      x:Math.random()*c.width, y:Math.random()*c.height,
-      r:175, hp:180, maxHp:180, s:1,
-      col:"darkgreen", elite:false, cd:0, type:"dragon"
-    };
-    bossDropText = "DRAGON PITY!";
-    setTimeout(() => bossDropText = "", 3000);
-    return;
-  }
-
-  // GOD PITY
-  if (killsSinceGod >= 20) {
-    killsSinceGod = 0;
-    killsSinceDragon = 0;
-    boss = {
-      x:Math.random()*c.width, y:Math.random()*c.height,
-      r:120, hp:120, maxHp:120, s:1.2,
-      col:"gold", elite:false, cd:0, type:"god"
-    };
-    bossDropText = "GOD PITY!";
-    setTimeout(() => bossDropText = "", 3000);
-    return;
-  }
-
-  // Normal random spawn
   const roll = Math.random();
 
-  if (roll < 0.80) {
+  if (roll < 0.70) {
     boss = { x:Math.random()*c.width, y:Math.random()*c.height, r:50, hp:15, maxHp:15, s:2, col:"red", elite:false, cd:0, type:"normal" };
     return;
   }
 
-  if (roll < 0.95) {
+  if (roll < 0.90) {
     boss = { x:Math.random()*c.width, y:Math.random()*c.height, r:70, hp:40, maxHp:40, s:3, col:"purple", elite:true, cd:0, type:"elite" };
     return;
   }
 
-  if (roll < 0.99) {
+  if (roll < 0.98) {
     boss = { x:Math.random()*c.width, y:Math.random()*c.height, r:120, hp:120, maxHp:120, s:1.2, col:"gold", elite:false, cd:0, type:"god" };
-    killsSinceGod = 0;
-    killsSinceDragon = 0;
     return;
   }
 
   boss = { x:Math.random()*c.width, y:Math.random()*c.height, r:175, hp:180, maxHp:180, s:1, col:"darkgreen", elite:false, cd:0, type:"dragon" };
-  killsSinceGod = 0;
-  killsSinceDragon = 0;
 }
 
 setInterval(() => {
@@ -339,89 +271,6 @@ onclick = e => {
 
   fuseSummons();
 };
-
-function shoot() {
-  if (dead || choose || paused) return;
-  if (p.shootCooldown > 0) return;
-  if (p.mana < p.shCost) return;
-
-  p.shootCooldown = p.shootDelay;
-  p.mana -= p.shCost;
-
-  const speed = 8 + p.spdBoost;
-  const angle = Math.atan2(lastY - p.y, lastX - p.x);
-
-  function makeShot(a) {
-    shots.push({
-      x: p.x, y: p.y, r: 12, sp: speed,
-      dx: Math.cos(a), dy: Math.sin(a),
-      col: `hsl(${Math.random()*360},80%,60%)`,
-      sh: shape,
-      dmg: p.dmg
-    });
-  }
-
-  if (p.multi) {
-    const n = p.multiCount;
-    const spread = 0.25;
-    for (let i = 0; i < n; i++) {
-      const off = spread * ((i / (n - 1)) - 0.5);
-      makeShot(angle + off);
-    }
-  } else {
-    makeShot(angle);
-  }
-}
-
-// UTIL
-function drawSummon(s) {
-  x.fillStyle = s.col;
-  x.beginPath();
-  x.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-  x.fill();
-}
-
-function fuseSummons() {
-  for (let i = 0; i < sums.length; i++) {
-    for (let j = i + 1; j < sums.length; j++) {
-      const a = sums[i], b = sums[j];
-      const d = Math.hypot(a.x - b.x, a.y - b.y);
-      if (d < a.r + b.r) {
-        a.r += b.r * 0.5;
-        a.hp += b.hp;
-        sums.splice(j, 1);
-        j--;
-      }
-    }
-  }
-}
-
-function levelUp() {
-  p.lvl++;
-  p.xp = 0;
-  p.xpNext = Math.floor(p.xpNext * 1.5);
-  p.maxHp += 10;
-  p.hp = p.maxHp;
-  p.maxMana += 10;
-  p.mana = p.maxMana;
-  p.dmg += 0.5;
-  p.regen += 0.02;
-  saveGame();
-}
-
-function rewardGod() {
-  p.dmg += 10;
-  p.maxHp += 50;
-  p.hp = p.maxHp;
-}
-
-function rewardDragon() {
-  p.dmg += 15;
-  p.multi = true;
-  p.multiCount += 3;
-}
-
-// UPDATE
 function update() {
   if (paused) return;
 
@@ -432,6 +281,7 @@ function update() {
     if (keys["s"] || keys["S"]) p.y += p.s;
     if (keys["a"] || keys["A"]) p.x -= p.s;
     if (keys["d"] || keys["D"]) p.x += p.s;
+
     p.hp = Math.min(p.maxHp, p.hp + p.regen);
     p.mana = Math.min(p.maxMana, p.mana + p.mRegen);
   }
@@ -526,10 +376,6 @@ function update() {
             offerGodCards();
             bossDropText = "GOD REWARD!";
             setTimeout(() => bossDropText = "", 3000);
-
-            killsSinceGod = 0;
-            killsSinceDragon = 0;
-
             saveGame();
             return;
           }
@@ -541,10 +387,6 @@ function update() {
             offerDragonCards();
             bossDropText = "DRAGON REWARD!";
             setTimeout(() => bossDropText = "", 3000);
-
-            killsSinceGod = 0;
-            killsSinceDragon = 0;
-
             saveGame();
             return;
           }
@@ -553,10 +395,6 @@ function update() {
           if (boss.type === "elite") {
             bossDropText = "";
             boss = null;
-
-            killsSinceGod++;
-            killsSinceDragon++;
-
             p.xp += 15;
             if (p.xp >= p.xpNext) levelUp();
             offerCards();
@@ -568,10 +406,6 @@ function update() {
           if (boss.type === "normal") {
             bossDropText = "";
             boss = null;
-
-            killsSinceGod++;
-            killsSinceDragon++;
-
             p.xp += 10;
             if (p.xp >= p.xpNext) levelUp();
             saveGame();
@@ -682,12 +516,10 @@ function draw() {
   x.fillStyle="cyan";
   x.fillRect(p.x-20,p.y+p.r+10,(p.mana/p.maxMana)*40,6);
 
-  // XP + PITY
+  // XP
   x.fillStyle="white";
   x.font="16px Arial";
   x.fillText(`Lvl ${p.lvl}  XP ${p.xp}/${p.xpNext}`,10,20);
-  x.fillText(`God Pity: ${killsSinceGod}/20`, 10, 40);
-  x.fillText(`Dragon Pity: ${killsSinceDragon}/100`, 10, 60);
 
   // Summons + shots
   sums.forEach(drawSummon);
