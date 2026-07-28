@@ -518,7 +518,7 @@ function draw() {
   // Player HP bar
   x.fillStyle="red";
   x.fillRect(p.x-20,p.y-p.r-20,40,6);
-  x.fillStyle="lime";
+  x.fillStyle="#00FF00"; // pure green
   x.fillRect(p.x-20,p.y-p.r-20,(p.hp/p.maxHp)*40,6);
 
   // Player Mana bar
@@ -551,17 +551,17 @@ function draw() {
     x.fillStyle=boss.col;
     x.fill();
 
-    // Enemy HP bar (FIXED)
+    // Enemy HP bar (pure green)
     x.fillStyle="white";
     x.fillRect(boss.x-40,boss.y-boss.r-20,80,10);
 
-    x.fillStyle="lime";
-    const bossHpWidth = (boss.hp / boss.maxHp) * 80;
+    x.fillStyle="#00FF00";
+    const bossHpWidth = Math.max(0,(boss.hp/boss.maxHp)*80);
     x.fillRect(boss.x-40,boss.y-boss.r-20,bossHpWidth,10);
 
     // Boss labels
-    x.fillStyle = "yellow";
-    x.font = "20px Arial";
+    x.fillStyle="yellow";
+    x.font="20px Arial";
 
     if (boss.type === "god") {
       x.fillText("GOD", boss.x - 20, boss.y - boss.r - 40);
@@ -579,8 +579,8 @@ function draw() {
 
   // Boss drop text
   if (bossDropText) {
-    x.fillStyle = "white";
-    x.font = "28px Arial";
+    x.fillStyle="white";
+    x.font="28px Arial";
     x.fillText(bossDropText, c.width/2 - 200, c.height - 80);
   }
 
