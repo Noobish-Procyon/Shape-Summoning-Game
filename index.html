@@ -78,7 +78,7 @@ let choose = false;
 let cards = [];
 let bossDropText = "";
 
-// REGULAR + ELITE upgrades
+// REGULAR upgrades
 const upgrades = [
   { name:"Max HP + Heal", apply(){ p.maxHp+=20; p.hp=p.maxHp; }},
   { name:"Max Mana + Restore", apply(){ p.maxMana+=20; p.mana=p.maxMana; }},
@@ -371,6 +371,7 @@ function levelUp() {
 function update() {
   if (p.shootCooldown > 0) p.shootCooldown--;
 
+  // Player movement
   if (!dead && !choose) {
     if (keys["w"] || keys["W"]) p.y -= p.s;
     if (keys["s"] || keys["S"]) p.y += p.s;
@@ -380,6 +381,13 @@ function update() {
     p.mana = Math.min(p.maxMana, p.mana + p.mRegen);
   }
 
+  // PLAYER BORDER COLLISION
+  if (p.x - p.r < 0) p.x = p.r;
+  if (p.x + p.r > c.width) p.x = c.width - p.r;
+  if (p.y - p.r < 0) p.y = p.r;
+  if (p.y + p.r > c.height) p.y = c.height - p.r;
+
+  // Boss movement
   if (boss && !dead && !choose) {
     let angle = Math.atan2(p.y - boss.y, p.x - boss.x);
 
@@ -399,20 +407,53 @@ function update() {
     boss.x += Math.cos(angle) * boss.s;
     boss.y += Math.sin(angle) * boss.s;
 
+    // BOSS BORDER COLLISION
+    if (boss.x - boss.r < 0) boss.x = boss.r;
+    if (boss.x + boss.r > c.width) boss.x = c.width - boss.r;
+    if (boss.y - boss.r < 0) boss.y = boss.r;
+    if (boss.y + boss.r > c.height) boss.y = c.height - boss.r;
+
     boss.cd--;
     if (boss.cd <= 0) bossShoot(boss);
   }
 
+  // Shots movement
   shots.forEach(s => {
     s.x += s.dx * s.sp;
     s.y += s.dy * s.sp;
   });
 
+  // SHOT BORDER COLLISION
+  shots = shots.filter(s =>
+    s.x > s.r &&
+    s.x < c.width - s.r &&
+    s.y > s.r &&
+    s.y < c.height - s.r
+  );
+
+  // Boss shots movement
   bShots.forEach(b => {
     b.x += b.dx * b.sp;
     b.y += b.dy * b.sp;
   });
 
+  // BOSS SHOT BORDER COLLISION
+  bShots = bShots.filter(b =>
+    b.x > b.r &&
+    b.x < c.width - b.r &&
+    b.y > b.r &&
+    b.y < c.height - b.r
+  );
+
+  // Summon border collision
+  sums.forEach(s => {
+    if (s.x - s.r < 0) s.x = s.r;
+    if (s.x + s.r > c.width) s.x = c.width - s.r;
+    if (s.y - s.r < 0) s.y = s.r;
+    if (s.y + s.r > c.height) s.y = c.height - s.r;
+  });
+
+  // Player shots hit boss
   if (boss) {
     for (let i = shots.length - 1; i >= 0; i--) {
       const s = shots[i];
@@ -421,8 +462,13 @@ function update() {
         boss.hp -= s.dmg;
         shots.splice(i, 1);
 
+        if (d < s.r + boss.r) {
+        boss.hp -= s.dmg;
+        shots.splice(i, 1);
+
         if (boss.hp <= 0) {
 
+          // GOD reward
           if (boss.type === "god") {
             rewardGod();
             boss = null;
@@ -433,6 +479,7 @@ function update() {
             return;
           }
 
+          // DRAGON reward
           if (boss.type === "dragon") {
             rewardDragon();
             boss = null;
@@ -443,6 +490,7 @@ function update() {
             return;
           }
 
+          // ELITE reward
           if (boss.type === "elite") {
             bossDropText = "";
             boss = null;
@@ -453,6 +501,7 @@ function update() {
             return;
           }
 
+          // NORMAL reward
           if (boss.type === "normal") {
             bossDropText = "";
             boss = null;
@@ -466,9 +515,12 @@ function update() {
     }
   }
 
+  // Boss shots hit player / summons
   for (let i = bShots.length - 1; i >= 0; i--) {
     const b = bShots[i];
     const dp = Math.hypot(b.x - p.x, b.y - p.y);
+
+    // Hit player
     if (dp < b.r + p.r) {
       p.hp -= b.dmg;
       bShots.splice(i, 1);
@@ -480,6 +532,7 @@ function update() {
       continue;
     }
 
+    // Hit summons
     let hit = false;
     for (let j = 0; j < sums.length; j++) {
       const s = sums[j];
@@ -493,12 +546,6 @@ function update() {
       }
     }
     if (hit) continue;
-
-    // Remove off-screen boss shots
-    if (b.x < -50 || b.x > c.width + 50 ||
-        b.y < -50 || b.y > c.height + 50) {
-      bShots.splice(i, 1);
-    }
   }
 
   // Boss touches player
@@ -525,7 +572,7 @@ function draw() {
   x.fillStyle=p.col;
   x.fill();
 
-  // Player HP bar (green)
+  // Player HP bar
   x.fillStyle="red";
   x.fillRect(p.x-20,p.y-p.r-20,40,6);
   x.fillStyle="#00FF00";
@@ -561,7 +608,7 @@ function draw() {
     x.fillStyle=boss.col;
     x.fill();
 
-    // Enemy HP bar (pure green)
+    // Boss HP bar
     x.fillStyle="white";
     x.fillRect(boss.x-40,boss.y-boss.r-20,80,10);
 
@@ -569,7 +616,7 @@ function draw() {
     const bossHpWidth = Math.max(0,(boss.hp/boss.maxHp)*80);
     x.fillRect(boss.x-40,boss.y-boss.r-20,bossHpWidth,10);
 
-    // Boss labels
+    // Boss label
     x.fillStyle="yellow";
     x.font="20px Arial";
 
