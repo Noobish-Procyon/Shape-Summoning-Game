@@ -4,11 +4,30 @@
 <title>Shape Summoner</title>
 <style>
 body { margin:0; overflow:hidden; background:#111; }
-canvas { display:block; }
+
+canvas {
+  display:block;
+  width:100vw;
+  height:100vh;
+  border:4px solid #444;
+  box-sizing:border-box;
+  box-shadow:0 0 20px #000;
+}
+
+#saveHint {
+  position:fixed;
+  left:10px;
+  bottom:10px;
+  color:#ccc;
+  font-family:Arial, sans-serif;
+  font-size:14px;
+}
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
+<div id="saveHint">Press [F] to save — auto‑save every 10s</div>
+
 <script>
 const c = document.getElementById("game");
 const x = c.getContext("2d");
@@ -59,7 +78,7 @@ let choose = false;
 let cards = [];
 let bossDropText = "";
 
-// REGULAR + ELITE upgrade pool
+// REGULAR + ELITE upgrades
 const upgrades = [
   { name:"Max HP + Heal", apply(){ p.maxHp+=20; p.hp=p.maxHp; }},
   { name:"Max Mana + Restore", apply(){ p.maxMana+=20; p.mana=p.maxMana; }},
@@ -74,7 +93,7 @@ const upgrades = [
   { name:"Faster Shooting", apply(){ p.shootDelay=Math.max(3,p.shootDelay-2); }}
 ];
 
-// GOD upgrade pool
+// GOD upgrades
 const godUpgrades = [
   { name:"God Power: +20 DMG", apply(){ p.dmg+=20; }},
   { name:"God Speed: +20 SPD", apply(){ p.s+=20; }},
@@ -84,7 +103,7 @@ const godUpgrades = [
   { name:"God Regen: +100% HP Regen", apply(){ p.regen*=2; }}
 ];
 
-// DRAGON upgrade pool
+// DRAGON upgrades
 const dragonUpgrades = [
   { name:"Dragon Fury: +25 DMG", apply(){ p.dmg+=25; }},
   { name:"Dragon Speed: +25 SPD", apply(){ p.s+=25; }},
@@ -99,7 +118,44 @@ onmousemove = e => {
   lastX = e.clientX;
   lastY = e.clientY;
 };
-// GOD + DRAGON PROJECTILES
+
+// SAVE SYSTEM
+const SAVE_KEY = "shapeSummonerSave";
+
+function saveGame() {
+  const data = {
+    p: {
+      x:p.x,y:p.y,
+      hp:p.hp,maxHp:p.maxHp,
+      mana:p.mana,maxMana:p.maxMana,
+      regen:p.regen,mRegen:p.mRegen,
+      lvl:p.lvl,xp:p.xp,xpNext:p.xpNext,
+      dmg:p.dmg,s:p.s,
+      sCost:p.sCost,shCost:p.shCost,
+      spdBoost:p.spdBoost,
+      multi:p.multi,multiCount:p.multiCount,
+      shootDelay:p.shootDelay
+    }
+  };
+  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+}
+
+function loadGame() {
+  const raw = localStorage.getItem(SAVE_KEY);
+  if (!raw) return;
+  try {
+    const data = JSON.parse(raw);
+    Object.assign(p, data.p);
+  } catch(e) {
+    console.warn("Save load failed", e);
+  }
+}
+
+// Load on start
+loadGame();
+
+// Auto-save every 10s
+setInterval(saveGame, 10000);
 function godShot(boss) {
   const a = Math.atan2(p.y - boss.y, p.x - boss.x);
   bShots.push({ x: boss.x, y: boss.y, r: 50, sp: 3, dx: Math.cos(a), dy: Math.sin(a), col: "yellow", dmg: 8 });
@@ -114,7 +170,6 @@ function dragonShot(boss) {
   }
 }
 
-// BOSS SHOOTING
 function bossShoot(boss) {
   if (boss.type === "god") return godShot(boss), boss.cd = 70;
   if (boss.type === "dragon") return dragonShot(boss), boss.cd = 90;
@@ -129,88 +184,46 @@ function bossShoot(boss) {
   boss.cd = boss.elite ? 40 : 60;
 }
 
-// BOSS SPAWN (80/15/4/1)
 function spawnBoss() {
   const roll = Math.random();
 
   if (roll < 0.80) {
-    boss = {
-      x: Math.random()*c.width,
-      y: Math.random()*c.height,
-      r: 50,
-      hp: 15,
-      maxHp: 15,
-      s: 2,
-      col: "red",
-      elite: false,
-      cd: 0,
-      type: "normal"
-    };
+    boss = { x:Math.random()*c.width, y:Math.random()*c.height, r:50, hp:15, maxHp:15, s:2, col:"red", elite:false, cd:0, type:"normal" };
     return;
   }
 
   if (roll < 0.95) {
-    boss = {
-      x: Math.random()*c.width,
-      y: Math.random()*c.height,
-      r: 70,
-      hp: 40,
-      maxHp: 40,
-      s: 3,
-      col: "purple",
-      elite: true,
-      cd: 0,
-      type: "elite"
-    };
+    boss = { x:Math.random()*c.width, y:Math.random()*c.height, r:70, hp:40, maxHp:40, s:3, col:"purple", elite:true, cd:0, type:"elite" };
     return;
   }
 
   if (roll < 0.99) {
-    boss = {
-      x: Math.random()*c.width,
-      y: Math.random()*c.height,
-      r: 120,
-      hp: 120,
-      maxHp: 120,
-      s: 1.2,
-      col: "gold",
-      elite: false,
-      cd: 0,
-      type: "god"
-    };
+    boss = { x:Math.random()*c.width, y:Math.random()*c.height, r:120, hp:120, maxHp:120, s:1.2, col:"gold", elite:false, cd:0, type:"god" };
     return;
   }
 
-  boss = {
-    x: Math.random()*c.width,
-    y: Math.random()*c.height,
-    r: 175,
-    hp: 180,
-    maxHp: 180,
-    s: 1,
-    col: "darkgreen",
-    elite: false,
-    cd: 0,
-    type: "dragon"
-  };
+  boss = { x:Math.random()*c.width, y:Math.random()*c.height, r:175, hp:180, maxHp:180, s:1, col:"darkgreen", elite:false, cd:0, type:"dragon" };
 }
 
 setInterval(() => {
   if (!boss && !dead && !choose) spawnBoss();
 }, 6000);
-// Keys
 onkeydown = e => {
   keys[e.key] = true;
+
+  if (e.key === "f" || e.key === "F") saveGame();
+
   if (choose) return;
+
   if (e.key==="1") shape=1;
   if (e.key==="2") shape=2;
   if (e.key==="3") shape=3;
   if (e.key==="4") shape=4;
   if (e.key===" ") shoot();
 };
+
 onkeyup = e => keys[e.key] = false;
 
-// Offer cards (regular + elite)
 function offerCards() {
   choose = true;
   cards = [];
@@ -220,7 +233,6 @@ function offerCards() {
   }
 }
 
-// Offer GOD cards
 function offerGodCards() {
   choose = true;
   cards = [];
@@ -230,7 +242,6 @@ function offerGodCards() {
   }
 }
 
-// Offer DRAGON cards
 function offerDragonCards() {
   choose = true;
   cards = [];
@@ -240,21 +251,23 @@ function offerDragonCards() {
   }
 }
 
-// Click
 onclick = e => {
   if (choose) {
     const w=250,h=150,g=50;
     const sx = c.width/2 - (w*1.5 + g);
     const y = 250;
+
     for (let i=0;i<3;i++) {
       const xx = sx + i*(w+g);
       if (e.clientX>=xx && e.clientX<=xx+w &&
           e.clientY>=y && e.clientY<=y+h) {
         cards[i].apply();
         choose = false;
+        saveGame();
         return;
       }
     }
+
     if (cards.length === 0) choose = false;
     return;
   }
@@ -275,7 +288,6 @@ onclick = e => {
   fuseSummons();
 };
 
-// Shooting
 function shoot() {
   if (dead || choose) return;
   if (p.shootCooldown > 0) return;
@@ -319,8 +331,8 @@ function respawn() {
   shots = [];
   bShots = [];
   sums = [];
+  saveGame();
 }
-// Draw summon / shot
 function drawSummon(s) {
   x.fillStyle = s.col;
   x.beginPath();
@@ -328,7 +340,6 @@ function drawSummon(s) {
   x.fill();
 }
 
-// Fuse summons
 function fuseSummons() {
   for (let i = 0; i < sums.length; i++) {
     for (let j = i + 1; j < sums.length; j++) {
@@ -344,7 +355,6 @@ function fuseSummons() {
   }
 }
 
-// Level up
 function levelUp() {
   p.lvl++;
   p.xp = 0;
@@ -355,9 +365,9 @@ function levelUp() {
   p.mana = p.maxMana;
   p.dmg += 0.5;
   p.regen += 0.02;
+  saveGame();
 }
 
-// Update
 function update() {
   if (p.shootCooldown > 0) p.shootCooldown--;
 
@@ -370,7 +380,6 @@ function update() {
     p.mana = Math.min(p.maxMana, p.mana + p.mRegen);
   }
 
-  // Boss logic
   if (boss && !dead && !choose) {
     let angle = Math.atan2(p.y - boss.y, p.x - boss.x);
 
@@ -394,7 +403,6 @@ function update() {
     if (boss.cd <= 0) bossShoot(boss);
   }
 
-  // Shots
   shots.forEach(s => {
     s.x += s.dx * s.sp;
     s.y += s.dy * s.sp;
@@ -405,7 +413,6 @@ function update() {
     b.y += b.dy * b.sp;
   });
 
-  // Player shots hit boss
   if (boss) {
     for (let i = shots.length - 1; i >= 0; i--) {
       const s = shots[i];
@@ -416,42 +423,42 @@ function update() {
 
         if (boss.hp <= 0) {
 
-          // GOD reward
           if (boss.type === "god") {
             rewardGod();
             boss = null;
             offerGodCards();
             bossDropText = "GOD REWARD!";
             setTimeout(() => bossDropText = "", 3000);
+            saveGame();
             return;
           }
 
-          // DRAGON reward
           if (boss.type === "dragon") {
             rewardDragon();
             boss = null;
             offerDragonCards();
             bossDropText = "DRAGON REWARD!";
             setTimeout(() => bossDropText = "", 3000);
+            saveGame();
             return;
           }
 
-          // ELITE reward
           if (boss.type === "elite") {
             bossDropText = "";
             boss = null;
             p.xp += 15;
             if (p.xp >= p.xpNext) levelUp();
             offerCards();
+            saveGame();
             return;
           }
 
-          // NORMAL reward
           if (boss.type === "normal") {
             bossDropText = "";
             boss = null;
             p.xp += 10;
             if (p.xp >= p.xpNext) levelUp();
+            saveGame();
             return;
           }
         }
@@ -459,7 +466,6 @@ function update() {
     }
   }
 
-  // Boss shots hit player / summons
   for (let i = bShots.length - 1; i >= 0; i--) {
     const b = bShots[i];
     const dp = Math.hypot(b.x - p.x, b.y - p.y);
@@ -469,6 +475,7 @@ function update() {
       if (p.hp <= 0) {
         p.hp = 0;
         dead = true;
+        saveGame();
       }
       continue;
     }
@@ -487,6 +494,7 @@ function update() {
     }
     if (hit) continue;
 
+    // Remove off-screen boss shots
     if (b.x < -50 || b.x > c.width + 50 ||
         b.y < -50 || b.y > c.height + 50) {
       bShots.splice(i, 1);
@@ -501,6 +509,7 @@ function update() {
       if (p.hp <= 0) {
         p.hp = 0;
         dead = true;
+        saveGame();
       }
     }
   }
@@ -564,18 +573,10 @@ function draw() {
     x.fillStyle="yellow";
     x.font="20px Arial";
 
-    if (boss.type === "god") {
-      x.fillText("GOD", boss.x - 20, boss.y - boss.r - 40);
-    }
-    else if (boss.type === "dragon") {
-      x.fillText("DRAGON", boss.x - 35, boss.y - boss.r - 40);
-    }
-    else if (boss.type === "elite") {
-      x.fillText("ELITE", boss.x - 25, boss.y - boss.r - 40);
-    }
-    else {
-      x.fillText("BOSS", boss.x - 20, boss.y - boss.r - 40);
-    }
+    if (boss.type === "god") x.fillText("GOD", boss.x - 20, boss.y - boss.r - 40);
+    else if (boss.type === "dragon") x.fillText("DRAGON", boss.x - 35, boss.y - boss.r - 40);
+    else if (boss.type === "elite") x.fillText("ELITE", boss.x - 25, boss.y - boss.r - 40);
+    else x.fillText("BOSS", boss.x - 20, boss.y - boss.r - 40);
   }
 
   // Boss drop text
