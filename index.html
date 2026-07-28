@@ -26,7 +26,7 @@ canvas {
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="saveHint">Press [F] to save — auto‑save every 10s</div>
+<div id="saveHint">Press [F] to save — auto‑save every 10s — [ESC] for pause</div>
 
 <script>
 const c = document.getElementById("game");
@@ -38,7 +38,8 @@ function resize() {
 }
 resize();
 onresize = resize;
-// Player
+
+// PLAYER
 const p = {
   x: c.width/2,
   y: c.height/2,
@@ -64,7 +65,7 @@ const p = {
   shootDelay: 10
 };
 
-// Game state
+// GAME STATE
 let boss = null;
 let shots = [];
 let bShots = [];
@@ -77,8 +78,10 @@ let dead = false;
 let choose = false;
 let cards = [];
 let bossDropText = "";
+let paused = false;
+let currentSlot = 1;
 
-// REGULAR upgrades
+// UPGRADES
 const upgrades = [
   { name:"Max HP + Heal", apply(){ p.maxHp+=20; p.hp=p.maxHp; }},
   { name:"Max Mana + Restore", apply(){ p.maxMana+=20; p.mana=p.maxMana; }},
@@ -93,7 +96,6 @@ const upgrades = [
   { name:"Faster Shooting", apply(){ p.shootDelay=Math.max(3,p.shootDelay-2); }}
 ];
 
-// GOD upgrades
 const godUpgrades = [
   { name:"God Power: +20 DMG", apply(){ p.dmg+=20; }},
   { name:"God Speed: +20 SPD", apply(){ p.s+=20; }},
@@ -103,7 +105,6 @@ const godUpgrades = [
   { name:"God Regen: +100% HP Regen", apply(){ p.regen*=2; }}
 ];
 
-// DRAGON upgrades
 const dragonUpgrades = [
   { name:"Dragon Fury: +25 DMG", apply(){ p.dmg+=25; }},
   { name:"Dragon Speed: +25 SPD", apply(){ p.s+=25; }},
@@ -113,22 +114,24 @@ const dragonUpgrades = [
   { name:"Dragon Heart: +500% Mana Regen", apply(){ p.mRegen*=5; }}
 ];
 
-// Mouse
+// MOUSE
 onmousemove = e => {
   lastX = e.clientX;
   lastY = e.clientY;
 };
 
-// SAVE SYSTEM
-const SAVE_KEY = "shapeSummonerSave";
+// SAVE SLOTS
+function getSaveKey() {
+  return "shapeSummonerSave_slot" + currentSlot;
+}
 
 function saveGame() {
   const data = { p };
-  localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  localStorage.setItem(getSaveKey(), JSON.stringify(data));
 }
 
 function loadGame() {
-  const raw = localStorage.getItem(SAVE_KEY);
+  const raw = localStorage.getItem(getSaveKey());
   if (!raw) return;
   try {
     const data = JSON.parse(raw);
@@ -138,6 +141,8 @@ function loadGame() {
 
 loadGame();
 setInterval(saveGame, 10000);
+
+// BOSS SYSTEM
 function godShot(boss) {
   const a = Math.atan2(p.y - boss.y, p.x - boss.x);
   bShots.push({ x: boss.x, y: boss.y, r: 50, sp: 3, dx: Math.cos(a), dy: Math.sin(a), col: "yellow", dmg: 8 });
@@ -188,12 +193,24 @@ function spawnBoss() {
 }
 
 setInterval(() => {
-  if (!boss && !dead && !choose) spawnBoss();
+  if (!boss && !dead && !choose && !paused) spawnBoss();
 }, 6000);
+
+// INPUT
 onkeydown = e => {
   keys[e.key] = true;
+
+  if (e.key === "Escape") {
+    paused = !paused;
+    return;
+  }
+
+  if (paused) return;
+
   if (e.key === "f" || e.key === "F") saveGame();
+
   if (choose) return;
+
   if (e.key==="1") shape=1;
   if (e.key==="2") shape=2;
   if (e.key==="3") shape=3;
@@ -231,6 +248,26 @@ function offerDragonCards() {
 }
 
 onclick = e => {
+  if (paused) {
+    const w = 200, h = 80, g = 40;
+    const sx = c.width/2 - (w*1.5 + g);
+    const y = 320;
+
+    for (let i = 1; i <= 3; i++) {
+      const xx = sx + (i-1)*(w+g);
+
+      if (e.clientX >= xx && e.clientX <= xx+w &&
+          e.clientY >= y && e.clientY <= y+h) {
+
+        currentSlot = i;
+        loadGame();
+        paused = false;
+        return;
+      }
+    }
+    return;
+  }
+
   if (choose) {
     const w=250,h=150,g=50;
     const sx = c.width/2 - (w*1.5 + g);
@@ -251,7 +288,8 @@ onclick = e => {
     return;
   }
 
-  if (dead) return respawn();
+  if (dead) return;
+
   if (p.mana < p.sCost) return;
 
   p.mana -= p.sCost;
@@ -268,7 +306,7 @@ onclick = e => {
 };
 
 function shoot() {
-  if (dead || choose) return;
+  if (dead || choose || paused) return;
   if (p.shootCooldown > 0) return;
   if (p.mana < p.shCost) return;
 
@@ -300,18 +338,7 @@ function shoot() {
   }
 }
 
-function respawn() {
-  p.x = c.width / 2;
-  p.y = c.height / 2;
-  p.hp = p.maxHp;
-  p.mana = p.maxMana;
-  dead = false;
-  boss = null;
-  shots = [];
-  bShots = [];
-  sums = [];
-  saveGame();
-}
+// UTIL
 function drawSummon(s) {
   x.fillStyle = s.col;
   x.beginPath();
@@ -347,7 +374,6 @@ function levelUp() {
   saveGame();
 }
 
-// FIX: God/Dragon crash — reward functions
 function rewardGod() {
   p.dmg += 10;
   p.maxHp += 50;
@@ -360,10 +386,12 @@ function rewardDragon() {
   p.multiCount += 3;
 }
 
+// UPDATE
 function update() {
+  if (paused) return;
+
   if (p.shootCooldown > 0) p.shootCooldown--;
 
-  // Player movement
   if (!dead && !choose) {
     if (keys["w"] || keys["W"]) p.y -= p.s;
     if (keys["s"] || keys["S"]) p.y += p.s;
@@ -456,7 +484,6 @@ function update() {
 
         if (boss.hp <= 0) {
 
-          // GOD reward
           if (boss.type === "god") {
             rewardGod();
             boss = null;
@@ -467,7 +494,6 @@ function update() {
             return;
           }
 
-          // DRAGON reward
           if (boss.type === "dragon") {
             rewardDragon();
             boss = null;
@@ -478,7 +504,6 @@ function update() {
             return;
           }
 
-          // ELITE reward
           if (boss.type === "elite") {
             bossDropText = "";
             boss = null;
@@ -489,7 +514,6 @@ function update() {
             return;
           }
 
-          // NORMAL reward
           if (boss.type === "normal") {
             bossDropText = "";
             boss = null;
@@ -508,7 +532,6 @@ function update() {
     const b = bShots[i];
     const dp = Math.hypot(b.x - p.x, b.y - p.y);
 
-    // Hit player
     if (dp < b.r + p.r) {
       p.hp -= b.dmg;
       bShots.splice(i, 1);
@@ -520,7 +543,6 @@ function update() {
       continue;
     }
 
-    // Hit summons
     let hit = false;
     for (let j = 0; j < sums.length; j++) {
       const s = sums[j];
@@ -549,10 +571,43 @@ function update() {
     }
   }
 }
-// Draw
+
+// DRAW
 function draw() {
   x.setTransform(1,0,0,1,0,0);
   x.clearRect(0,0,c.width,c.height);
+
+  // PAUSE MENU
+  if (paused) {
+    x.fillStyle = "rgba(0,0,0,0.7)";
+    x.fillRect(0,0,c.width,c.height);
+
+    x.fillStyle = "white";
+    x.font = "50px Arial";
+    x.fillText("PAUSED", c.width/2 - 120, 150);
+
+    x.font = "30px Arial";
+    x.fillText("Select Save Slot:", c.width/2 - 150, 250);
+
+    const w = 200, h = 80, g = 40;
+    const sx = c.width/2 - (w*1.5 + g);
+    const y = 320;
+
+    for (let i = 1; i <= 3; i++) {
+      const xx = sx + (i-1)*(w+g);
+
+      x.fillStyle = (currentSlot === i) ? "#444" : "#222";
+      x.fillRect(xx, y, w, h);
+
+      x.strokeStyle = "white";
+      x.strokeRect(xx, y, w, h);
+
+      x.fillStyle = "white";
+      x.fillText("Slot " + i, xx + 60, y + 50);
+    }
+
+    return;
+  }
 
   // Player
   x.beginPath();
@@ -596,7 +651,6 @@ function draw() {
     x.fillStyle=boss.col;
     x.fill();
 
-    // Boss HP bar
     x.fillStyle="white";
     x.fillRect(boss.x-40,boss.y-boss.r-20,80,10);
 
@@ -604,7 +658,6 @@ function draw() {
     const bossHpWidth = Math.max(0,(boss.hp/boss.maxHp)*80);
     x.fillRect(boss.x-40,boss.y-boss.r-20,bossHpWidth,10);
 
-    // Boss label
     x.fillStyle="yellow";
     x.font="20px Arial";
 
@@ -660,15 +713,15 @@ function draw() {
     x.fillText("YOU DIED", c.width/2 - 150, c.height/2 - 40);
 
     x.font="30px Arial";
-    x.fillText("Click to Respawn", c.width/2 - 150, c.height/2 + 20);
+    x.fillText("Refresh page to restart", c.width/2 - 180, c.height/2 + 20);
   }
-
-  requestAnimationFrame(gameLoop);
 }
 
+// GAME LOOP
 function gameLoop() {
   update();
   draw();
+  requestAnimationFrame(gameLoop);
 }
 
 gameLoop();
