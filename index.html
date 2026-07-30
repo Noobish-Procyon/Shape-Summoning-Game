@@ -185,11 +185,11 @@ function spawnBoss() {
   }
 
   if (roll < 0.99) {
-    boss = { x:Math.random()*c.width, y:Math.random()*c.height, r:250, hp:120, maxHp:120, s:4, col:"gold", elite:false, cd:0, type:"god" };
+    boss = { x:Math.random()*c.width, y:Math.random()*c.height, r:150, hp:1200, maxHp:120, s:4, col:"gold", elite:false, cd:0, type:"god" };
     return;
   }
 
-  boss = { x:Math.random()*c.width, y:Math.random()*c.height, r:500, hp:180, maxHp:180, s:4.5, col:"darkgreen", elite:false, cd:0, type:"dragon" };
+  boss = { x:Math.random()*c.width, y:Math.random()*c.height, r:180, hp:5000, maxHp:180, s:4.5, col:"darkgreen", elite:false, cd:0, type:"dragon" };
 }
 
 setInterval(() => {
