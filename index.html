@@ -97,21 +97,21 @@ const upgrades = [
 ];
 
 const godUpgrades = [
-  { name:"God Power: +20 DMG", apply(){ p.dmg+=20; }},
-  { name:"God Speed: +20 SPD", apply(){ p.s+=20; }},
-  { name:"God Mana: +200 Max Mana", apply(){ p.maxMana+=200; p.mana=p.maxMana; }},
-  { name:"God Vitality: +100 HP", apply(){ p.maxHp+=100; p.hp=p.maxHp; }},
-  { name:"God Regen: +300% Mana Regen", apply(){ p.mRegen*=3; }},
-  { name:"God Regen: +100% HP Regen", apply(){ p.regen*=2; }}
+  { name:"God Power: +2 DMG", apply(){ p.dmg+=2; }},
+  { name:"God Speed: +2 SPD", apply(){ p.s+=2; }},
+  { name:"God Mana: +20 Max Mana", apply(){ p.maxMana+=20; p.mana=p.maxMana; }},
+  { name:"God Vitality: +10 HP", apply(){ p.maxHp+=10; p.hp=p.maxHp; }},
+  { name:"God Regen: +30% Mana Regen", apply(){ p.mRegen*=1.3; }},
+  { name:"God Regen: +20% HP Regen", apply(){ p.regen*=1.2; }}
 ];
 
 const dragonUpgrades = [
-  { name:"Dragon Fury: +25 DMG", apply(){ p.dmg+=25; }},
-  { name:"Dragon Speed: +25 SPD", apply(){ p.s+=25; }},
+  { name:"Dragon Fury: +5 DMG", apply(){ p.dmg+=5; }},
+  { name:"Dragon Speed: +5 SPD", apply(){ p.s+=5; }},
   { name:"Dragon Breath: Infinite Mana", apply(){ p.maxMana=999999; p.mana=p.maxMana; }},
-  { name:"Dragon Multishot +5", apply(){ p.multi=true; p.multiCount+=5; }},
-  { name:"Dragon Skin: +150 HP", apply(){ p.maxHp+=150; p.hp=p.maxHp; }},
-  { name:"Dragon Heart: +500% Mana Regen", apply(){ p.mRegen*=5; }}
+  { name:"Dragon Multishot +3", apply(){ p.multi=true; p.multiCount+=3; }},
+  { name:"Dragon Skin: +15 HP", apply(){ p.maxHp+=15; p.hp=p.maxHp; }},
+  { name:"Dragon Heart: +50% Mana Regen", apply(){ p.mRegen*=1.5; }}
 ];
 
 // MOUSE
